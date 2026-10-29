@@ -3,11 +3,14 @@ import { jwt } from "better-auth/plugins";
 import { MongoClient } from "mongodb";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 
-const uri = process.env.MONGODB_URI || "";
+const uri =
+  process.env.MONGODB_URI ||
+  "mongodb://sport-nest:wzRikA2pmrRwcWfI@ac-xahspt4-shard-00-00.8avnhl5.mongodb.net:27017,ac-xahspt4-shard-00-01.8avnhl5.mongodb.net:27017,ac-xahspt4-shard-00-02.8avnhl5.mongodb.net:27017/?ssl=true&replicaSet=atlas-uev5y2-shard-0&authSource=admin";
 const client = new MongoClient(uri);
 const db = client.db();
 
 export const auth = betterAuth({
+  secret: process.env.BETTER_AUTH_SECRET || "s8aerTqQ3tV802I9Ic3zlmKqTvjWq6ga",
   baseURL:
     process.env.BETTER_AUTH_URL ||
     (process.env.VERCEL_URL
