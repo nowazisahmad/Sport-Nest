@@ -3,7 +3,6 @@ import type { NextRequest } from 'next/server'
 import { auth } from './lib/auth';
 import { headers } from 'next/headers';
 
-// This function can be marked `async` if using `await` inside
 export async function proxy(request: NextRequest) {
     console.log('Proxying request:', request.url);
 
@@ -19,9 +18,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
 }
 
-// Alternatively, you can use a default export:
-// export default function proxy(request: NextRequest) { ... }
 
 export const config = {
-    matcher: ['/dashboard/:path*'],
+    matcher: ['/dashboard/:path*', '/facilities'],
 }

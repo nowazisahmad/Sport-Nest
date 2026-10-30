@@ -25,7 +25,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { TFacility } from "@/types/facility.types";
-import { useSession } from "@/lib/auth-client";
+import { authClient, useSession } from "@/lib/auth-client";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -73,13 +73,29 @@ const BookingForm = ({ facility }: { facility: TFacility }) => {
 
     setSubmitting(true);
     try {
+      let token = "";
+      try {
+        const tokenRes = await authClient.token();
+        token = tokenRes.data?.token || "";
+      } catch (tokenErr) {
+        console.warn("Could not retrieve auth token:", tokenErr);
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const serverUrl =
+        process.env.NEXT_PUBLIC_SERVER_BASE_URL || "http://localhost:5000";
+
       const result = await fetch(
-        `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/facilities/booking`,
+        `${serverUrl}/facilities/booking`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers,
           body: JSON.stringify(booking),
         },
       );

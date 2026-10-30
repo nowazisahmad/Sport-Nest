@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CircleCheck } from "lucide-react";
 import { popularSports } from "@/lib/data";
 import { Button } from "@/components/ui/button";
@@ -18,8 +19,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Toast, toast } from "@/components/ui/toast";
-import { useSession } from "@/lib/auth-client";
+import { toast } from "@/components/ui/toast";
+import { authClient, getAuthToken, useSession } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/spinner";
 
 export type NewFacility = {
@@ -33,6 +34,8 @@ export type NewFacility = {
 };
 
 const AddFacilityForm = () => {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const { data: session, isPending } = useSession();
 
@@ -45,44 +48,69 @@ const AddFacilityForm = () => {
 
   const user = session?.user;
 
-  console.log(user, isPending, "user");
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-
     const formData = new FormData(form);
-
     const facility = Object.fromEntries(formData.entries());
 
-    const result = await fetch(
-      `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/facilities`,
-      {
+    setSubmitting(true);
+    try {
+      let token = await getAuthToken();
+      if (!token) {
+        try {
+          const tokenRes = await authClient.token();
+          token = tokenRes.data?.token || "";
+        } catch {}
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const serverUrl =
+        process.env.NEXT_PUBLIC_SERVER_BASE_URL || "http://localhost:5000";
+
+      const result = await fetch(`${serverUrl}/facilities`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ...facility, creatorEmail: user?.email }),
-      },
-    );
-    const data = await result.json();
-
-    console.log(facility, "facility");
-    console.log(data);
-
-    if (data.acknowledged) {
-      toast.add({
-        title: "Facility added successfully",
-        description: "Your facility has been added to the platform.",
-        type: "success",
+        headers,
+        body: JSON.stringify({
+          ...facility,
+          pricePerHour: Number(facility.pricePerHour),
+          capacity: Number(facility.capacity),
+          creatorEmail: user?.email,
+        }),
       });
+
+      const data = await result.json();
+
+      if (!result.ok) {
+        throw new Error(data.message || data.error || "Failed to add facility");
+      }
+
+      if (data.acknowledged || data.insertedId) {
+        toast.add({
+          title: "Facility added successfully",
+          description: "Your facility has been added to the platform.",
+          type: "success",
+        });
+        form.reset();
+        setSubmitted(true);
+        router.push("/dashboard/my-facilities");
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Something went wrong";
+      toast.add({
+        title: message,
+        type: "error",
+      });
+    } finally {
+      setSubmitting(false);
     }
-
-    // // TODO: send to the server once the API is ready.
-    // console.log("New facility:", facility);
-
-    // form.reset();
-    // setSubmitted(true);
   };
 
   return (
@@ -198,8 +226,14 @@ const AddFacilityForm = () => {
               </p>
             )}
 
-            <Button type="submit" size="lg" className="w-full md:w-fit">
-              Add Facility
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full md:w-fit"
+              disabled={submitting}
+            >
+              {submitting && <Spinner />}
+              {submitting ? "Adding Facility..." : "Add Facility"}
             </Button>
           </FieldGroup>
         </form>

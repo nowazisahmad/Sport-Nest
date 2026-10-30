@@ -9,7 +9,6 @@ import { buttonVariants } from "@/components/ui/button";
 import { TFacility } from "@/types/facility.types";
 import BookingForm from "./_components/BookingForm";
 
-// Shared by generateMetadata and the page so the facility is fetched once per request.
 const getFacility = cache(async (id: string): Promise<TFacility | null> => {
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_SERVER_BASE_URL}/facilities/${id}`,
@@ -20,7 +19,6 @@ const getFacility = cache(async (id: string): Promise<TFacility | null> => {
 
   if (!res.ok) return null;
 
-  // The server answers an unknown id with an empty body, which isn't valid JSON.
   return res.json().catch(() => null);
 });
 
@@ -67,8 +65,6 @@ const page = async ({
       <div className="grid items-start gap-8 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
           <div className="relative aspect-video overflow-hidden rounded-xl bg-muted">
-            {/* Image URLs are user-submitted and can be on any host, so skip the
-                optimizer (it only accepts hosts listed in next.config remotePatterns). */}
             <Image
               src={image}
               alt={name}
